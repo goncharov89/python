@@ -28,9 +28,9 @@ Numbers = Table('Number', metadata,
                 Column('NumberStatusID', INTEGER),
                 Column('CreatedDate', DATETIME),
                 Column('ModifyStatusDate', DATETIME),
-                Column('ID', String),
+                Column('ID', String(100)),
                 Column('ReservedUntil', DATETIME),
-                Column('ReserveToken', String)
+                Column('ReserveToken', String(100))
                 )
 
 metadata.create_all(mssql)
