@@ -18,8 +18,6 @@ params = quote('DRIVER=' + driver + ';PORT=1433;SERVER=' + server +
                ';PORT=1443;DATABASE=' + database + ';UID=' + username + ';PWD=' + password)
 mssql = create_engine("mssql+pyodbc:///?odbc_connect=%s" % params)
 mssql.echo = False
-# MYSQL connection param
-mysql = create_engine('mysql+pymysql://py:py@10.78.251.183/py', pool_size=20, max_overflow=30, echo=False)
 
 metadata = MetaData(mssql)
 Numbers = Table('Number', metadata,
@@ -37,8 +35,9 @@ Numbers = Table('Number', metadata,
 
 metadata.create_all(mssql)
 
+mysql = create_engine('mysql+pymysql://py:py@10.78.251.183/py', pool_size=20, max_overflow=30, echo=False)
 metadata_mysql = MetaData(mysql)
-Numbers_mysql = Table('Number_mysql', metadata_mysql,
+Numbers_mysql = Table('Number_mysql_2', metadata_mysql,
                       Column('MSISDN', BIGINT, primary_key=True),
                       Column('CategoryID', INTEGER),
                       Column('TypeID', INTEGER),
@@ -53,27 +52,20 @@ Numbers_mysql = Table('Number_mysql', metadata_mysql,
                       )
 
 metadata_mysql.create_all(mysql)
-Numbers_mysql.create(mysql, checkfirst=True)
-
 conn = mssql.connect()
 
 s = select([Numbers]).where(
     Numbers.c.BranchID.in_(branch_region))
 res = conn.execute(s)
+list_c = metadata.tables['Number'].c.keys()
+
 i = 0
 for row in res:
     cortege = list()
-    cortege.append(row.MSISDN)
-    cortege.append(row.CategoryID)
-    cortege.append(row.TypeID)
-    cortege.append(row.BranchID)
-    cortege.append(row.NumberStatusID)
-    cortege.append(row.CreatedDate)
-    cortege.append(row.ModifyStatusDate)
-    cortege.append(row.ID)
-    cortege.append(row.ReservedUntil)
-    cortege.append(row.ReserveToken)
+    for c in list_c:
+        cortege.append(row[c])
     w.put(cortege)
+
 
 progress = 'Queue: {:<' + str(len(str(w.qsize()))) + '}'
 
