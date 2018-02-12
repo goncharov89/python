@@ -8,7 +8,7 @@ w = queue.Queue()
 
 # MSSQL connection param
 branch_region = (95, )
-server = ''
+server = '10.240.11.21'
 database = ''
 username = ''
 password = ''
@@ -19,7 +19,7 @@ params = quote('DRIVER=' + driver + ';PORT=1433;SERVER=' + server +
 mssql = create_engine("mssql+pyodbc:///?odbc_connect=%s" % params)
 mssql.echo = False
 
-metadata = MetaData(mssql)
+metadata = MetaData()
 Numbers = Table('Number', metadata,
                 Column('MSISDN', BIGINT, primary_key=True),
                 Column('CategoryID', INTEGER),
@@ -34,30 +34,13 @@ Numbers = Table('Number', metadata,
                 )
 
 metadata.create_all(mssql)
-
-mysql = create_engine('mysql+pymysql://py:py@10.78.251.183/py', pool_size=20, max_overflow=30, echo=False)
-metadata_mysql = MetaData(mysql)
-Numbers_mysql = Table('Number_mysql_2', metadata_mysql,
-                      Column('MSISDN', BIGINT, primary_key=True),
-                      Column('CategoryID', INTEGER),
-                      Column('TypeID', INTEGER),
-                      Column('BranchID', INTEGER),
-                      Column('NumberStatusID', INTEGER),
-                      Column('CreatedDate', DATETIME),
-                      Column('ModifyStatusDate', DATETIME),
-                      Column('ID', String(100)),
-                      Column('ReservedUntil', DATETIME),
-                      Column('ReserveToken', String(100)),
-                      mysql_charset='utf8'
-                      )
-
-metadata_mysql.create_all(mysql)
+s = select([Numbers]).where(Numbers.c.BranchID.in_(branch_region))
 conn = mssql.connect()
-
-s = select([Numbers]).where(
-    Numbers.c.BranchID.in_(branch_region))
 res = conn.execute(s)
 list_c = metadata.tables['Number'].c.keys()
+
+mysql = create_engine('mysql+pymysql://py:py@10.78.251.183/py', pool_size=20, max_overflow=30, echo=False)
+metadata.create_all(mysql)
 
 i = 0
 for row in res:
@@ -81,7 +64,7 @@ class CopyTableThread(threading.Thread):
         trans = conn_mysql.begin()
         while not w.empty():
             row = w.get()
-            ins = Numbers_mysql.insert().values(MSISDN=row[0],
+            ins = Numbers.insert().values(MSISDN=row[0],
                                                 CategoryID=row[1],
                                                 TypeID=row[2],
                                                 BranchID=row[3],
